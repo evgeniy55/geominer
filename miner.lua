@@ -44,7 +44,7 @@ local energy_level, sleep, report, remove_point, check, step, turn, smart_turn, 
 
 local function checkCommands()
   while true do
-    local name, _, from, port, _, message = computer.pullSignal(1)
+    local name, _, from, port, _, message = computer.pullSignal(0.1)
     if name == "modem_message" then
       if message[6] == "stop" then
         running = false
