@@ -1,4 +1,3 @@
-local event = require("event")
 local chunks = 9 -- количество чанков для добычи
 local min, max = 2.2, 40 -- минимальная и максимальная плотность
 local port = 1 -- порт для взаимодействия с роботом
@@ -45,8 +44,8 @@ local energy_level, sleep, report, remove_point, check, step, turn, smart_turn, 
 
 local function checkCommands()
   while true do
-    local _, _, from, port, _, message = event.pull(0.5, "modem_message")
-    if message then
+    local name, _, from, port, _, message = computer.pullSignal(1)
+    if name == "modem_message" then
       if message[6] == "stop" then
         running = false
         report("Command Stop received. Go to home.")
