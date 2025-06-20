@@ -8,6 +8,8 @@ local steps, turns = 0, 0 -- debug
 local WORLD = {x = {}, y = {}, z = {}} -- таблица меток
 local E_C, W_R = 0, 0 -- энергозатраты на один шаг и скорость износа
 
+local running = true
+
 local function arr2a_arr(tbl) -- преобразование списка в ассоциативный массив
   for i = #tbl, 1, -1 do
    tbl[tbl[i]], tbl[i] = true, nil
@@ -41,6 +43,23 @@ local modem = add_component('modem')
 local robot = add_component('robot')
 local inventory = robot.inventorySize()
 local energy_level, sleep, report, remove_point, check, step, turn, smart_turn, go, scan, calibration, sorter, home, main, solar, ignore_check, inv_check
+
+local function checkCommands()
+  while true do
+    local _, _, from, port, _, message = event.pull(0.5, "modem_message")
+    if message then
+      if message[6] == "stop" then
+        running = false
+        report("Command Stop received. Go to home.")
+        ignore_check = true
+        home(true, true)
+        break
+      end
+    else
+      break
+    end
+  end
+end
 
 energy_level = function()
   return computer.energy()/computer.maxEnergy()
@@ -78,6 +97,7 @@ end
 check = function(forcibly) -- проверка инструмента, батареи, удаление меток
   if not ignore_check and (steps%32 == 0 or forcibly) then -- если пройдено 32 шага или включен принудительный режим
     inv_check()
+    checkCommands()
     local delta = math.abs(X)+math.abs(Y)+math.abs(Z)+64 -- определить расстояние
     if robot.durability()/W_R < delta then -- если инструмент изношен
       report('tool is worn')
