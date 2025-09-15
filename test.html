@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Yandex Geocoder — Поиск регионального центра без справочника</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    input { width: 500px; padding: 8px; }
+    button { padding: 8px 16px; }
+    #result { margin-top: 16px; padding: 12px; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9; }
+  </style>
+</head>
+<body>
+  <h3>Поиск регионального центра по адресу</h3>
+  <textarea type="text" id="addressInput" rows="20"  placeholder="Введите адрес (например: д. Сосновка, Ивановская область)" style="width: 500px;">
+краснодарский край, г новороссийск, с кириловка, ул нефтяная 14
+омская область, с воскресенка</textarea>
+  <button onclick="geocodeAddress()">Найти центр</button>
+  <div id="result"></div>
+  <div id="errordiv"></div>
+
+  <script>
+    const YANDEX_API_KEY = ""; // ← ЗАМЕНИТЕ НА СВОЙ!
+    const dadata_token = "";
+    const dadata_secret = "";
+// 
+    async function geocodeAddress() {
+      const address = document.getElementById("addressInput").value.trim();
+      if (!address) {
+        document.getElementById("result").innerHTML = "<p>Введите адрес!</p>";
+        return;
+      }
+
+      document.getElementById("result").innerHTML = "<p>Ищем...</p>";
+
+      let inpuValues = document.getElementById("addressInput").value.split('\n');
+      const suggestionsUrl = `https://suggestions.dadata.ru/suggestions/api/4_1/rs/suggest/address`;
+      const addressUrl = "https://cleaner.dadata.ru/api/v1/clean/address";
+      const findByIdUrl = "https://suggestions.dadata.ru/suggestions/api/4_1/rs/findById/address";
+
+      try {
+        //const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${YANDEX_API_KEY}&format=json&geocode=${encodeURIComponent(address)}`;
+
+        //const url = `https://cleaner.dadata.ru/api/v1/clean/address`;
+        var options = {
+            method: "POST",
+            //mode: "cors",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "Authorization": "Token " + dadata_token,
+                "X-Secret": dadata_secret
+            },
+            body: JSON.stringify({query: null})
+        };
+
+      let response = null;
+      let data = null;
+      let geoObject = null;
+      let citiesArray = [];
+
+      for (var i = 0; i < inpuValues.length; i++) {
+        if (inpuValues[i].length == 0) {
+          //citiesArray.push('не определен');
+          continue;
+        }
+// JSON.stringify()
+        options.body =JSON.stringify({query: inpuValues[i]});
+        response = await fetch(suggestionsUrl, options);
+        if (!response.ok) {
+          citiesArray.push('Ошибка запроса');
+           break;
+        }
+        data = await response.json();
+        if (data.suggestions.length == 0) {
+          citiesArray.push('не определен');
+          continue;
+        }
+
+        let filtered = data.suggestions.find(f => f.data.qc_geo != "5" && f.data.city != null);
+        let areadata = null;
+        if (filtered == null) {
+          //citiesArray.push('не определен');
+          //continue;
+          // division: "MUNICIPAL" 
+          options.body = JSON.stringify({query: data.suggestions[0].value});
+          response = await fetch(url, options);
+          areadata = await response.json();
+
+          geoObject = areadata.suggestions[0];
+        }
+        else {
+          geoObject = filtered;
+        }
+
+        
+        citiesArray.push(geoObject.data.city);
+      }
+
+      for (var i = 0; i < citiesArray.length; i++) {
+        document.getElementById("result").innerHTML += `${citiesArray[i]}</br>`
+      }
+
+        // Вывод результата
+        /*
+        const resultHtml = `
+          <strong>Найденный адрес:</strong> ${formattedAddress}<br>
+          <strong>Координаты:</strong> ${point || "Не определены"}<br>
+          <strong>Региональный центр:</strong> 
+          <span style="color: #0066cc; font-weight: bold;">${regionalCenter || "<em>Не определён</em>"}</span><br>
+          <strong>Районый центр:</strong>
+          <span style="color: #0066cc; font-weight: bold;">${subAdminName || "<em>Не определён</em>"}</span><br>
+        `;
+        */
+        //document.getElementById("result").innerHTML = resultHtml;
+
+      } catch (error) {
+        //console.error("Ошибка:", error);
+        //document.getElementById("result").innerHTML = `<p style="color: red;">Ошибка: ${error.message}</p>`;
+        document.getElementById("result").innerHTML = JSON.stringify(error);
+      }
+    }
+
+  </script>
+</body>
+</html>
